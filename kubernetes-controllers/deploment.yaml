@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homework-deployment
+  namespace: homework
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: homework-app
+  template:
+    metadata:
+      labels:
+        app: homework-app
+    spec:
+      containers:
+        - name: homework-container
+          image: your-image:latest  # замените на имя вашего контейнера
+          ports:
+            - containerPort: 80  # замените на порт вашего приложения
+          readinessProbe:
+            exec:
+              command:
+                - cat
+                - /homework/index.html
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      nodeSelector:
+        homework: "true"  # добавить селектор для запуска только на нодах с этой меткой
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1

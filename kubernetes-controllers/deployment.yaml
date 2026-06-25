@@ -1,17 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: homework-deployment
+  name: homework-app
   namespace: homework
+  labels:
+    app: homework-app
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: homework-pod
+      app: homework-app
   template:
     metadata:
       labels:
-        app: homework-pod
+        app: homework-app
     spec:
       volumes:
         - name: homework-volume
@@ -60,3 +62,4 @@ spec:
     type: RollingUpdate
     rollingUpdate:
       maxUnavailable: 1
+      maxSurge: 1

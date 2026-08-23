@@ -1,0 +1,12 @@
+providers:
+  kubernetesGateway:
+    enabled: true
+service:
+  type: LoadBalancer
+nodeSelector:
+  homework: "true"
+additionalArguments:
+  - "--entryPoints.web.address=:8000"
+  - "--entryPoints.websecure.address=:8443"
+  - "--global.checkNewVersion=false"
+  - "--global.sendAnonymousUsage=false"

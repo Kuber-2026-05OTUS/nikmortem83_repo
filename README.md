@@ -1,10 +1,69 @@
 # Репозиторий для выполнения домашних заданий курса "Инфраструктурная платформа на основе Kubernetes-2026-05" 
-# ДЗ "Знакомство с решениями для запуска локального Kubernetes кластера, создание первого pod"
+# ДЗ "Volumes, StorageClass, PV, PVC"
 # Морозов Н.Н.
 
-# minikube start --driver=docker
-# kubectl apply -f namespace.yaml 
-# kubectl apply -f config.yaml
-# kubectl apply -f pod.yaml 
-# kubectl apply -f service.yaml 
-# minikube service homework-service --url -n homework
+# создем ветку kubernetes-networks
+# git branch --show-current
+
+# Запускаем minikube, устанавливаем метки на ноды
+ minikube start --driver=docker --nodes 3
+ 
+ kubectl label nodes minikube homework=true
+ kubectl label nodes minikube-m02 homework=true
+ kubectl label nodes minikube-m03 homework=true
+
+# kubectl get nodes --show-labels
+
+# Устанавливаем namespace
+kubectl apply -f namespace.yaml 
+
+# Устанавливаем traefik
+helm install traefik traefik/traefik \
+  --namespace homework \
+  --create-namespace \
+  --values traefik-values.yaml
+# kubectl get svc -n homework traefik
+# kubectl exec -n homework deploy/traefik -- netstat -tuln | grep -E ':8000|:8443'
+
+# Устанавливаем gateway-api CRD
+kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/standard-install.yaml -n homework
+# kubectl get crd | grep gateway
+
+# Запускаем тоннель для вызова сервиса с хостовой машины
+minikube tunnel
+
+# Добавляем имя хоста homework.otus для IP traefik
+# Для того, чтобы обращаться к вашему сервису по хосту
+# homework.otus его будет необходимо добавить в файл
+# hosts либо на вашей хостовой машине, либо на виртуалке
+# миникуба, в зависимости откуда вы будете пытаться
+# выполнять запрос
+
+# на хостовой  машине
+echo "10.111.241.106 homework.otus" | sudo tee -a /etc/hosts
+
+# на виртуалке миникуба
+minikube ssh
+echo "10.111.241.106 homework.otus" | sudo tee -a /etc/hosts
+
+# cat /etc/hosts
+
+# Запускаем сетевые настройки и деплой
+
+kubectl apply -f pvc.yaml
+
+kubectl apply -f service.yaml
+kubectl apply -f gatewayclass.yaml
+kubectl apply -f gateway.yaml
+kubectl apply -f httproute.yaml
+
+kubectl apply -f cm.yaml
+kubectl apply -f config.yaml
+kubectl apply -f deployment.yaml 
+
+
+# Проверяем доступ к страницам
+curl http://homework.otus/index.html
+curl http://homework.otus/homepage
+
+curl /conf/file

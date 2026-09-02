@@ -4,10 +4,10 @@ metadata:
   name: homework-service
   namespace: homework
 spec:
-  type: NodePort
-  ports:
-    - port: 8000
-      targetPort: 8000
-      nodePort: 30080
   selector:
-    app: homework-pod
+    app: homework-app
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000

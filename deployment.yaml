@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homework-app
+  namespace: homework
+  labels:
+    app: homework-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: homework-app
+  template:
+    metadata:
+      labels:
+        app: homework-app
+    spec:
+      volumes:
+        - name: homework-volume
+          persistentVolumeClaim:
+            claimName: homework-pvc
+        - name: nginx-config-volume
+          configMap:
+            name: nginx-config
+        - name: homework-conf-volume
+          configMap:
+            name: homework-config
+      initContainers:
+        - name: init-container
+          image: busybox
+          command: ['sh', '-c', 'mkdir -p /init && echo "<html><body><h1>Homework Assignment #4 - Morozov N.N.</h1><p>This file was created by init container busybox</p></body></html>" > /init/index.html && mkdir /conf']
+          volumeMounts:
+            - name: homework-volume
+              mountPath: /init
+      containers:
+        - name: homework-nginx
+          image: nginx:latest
+          ports:
+            - containerPort: 8000
+          volumeMounts:
+            - name: homework-volume
+              mountPath: /homework
+            - name: nginx-config-volume
+              mountPath: /etc/nginx/conf.d
+            - name: homework-conf-volume
+              mountPath: /homework/conf
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "rm -f /homework/index.html"]
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+          readinessProbe:
+            httpGet:
+              path: /index.html
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      nodeSelector:
+        homework: "true"
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1

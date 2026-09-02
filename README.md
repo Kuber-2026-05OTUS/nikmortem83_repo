@@ -40,30 +40,41 @@ minikube tunnel
 # выполнять запрос
 
 # на хостовой  машине
-echo "10.111.241.106 homework.otus" | sudo tee -a /etc/hosts
+echo "10.107.253.244 homework.otus" | sudo tee -a /etc/hosts
 
 # на виртуалке миникуба
 minikube ssh
-echo "10.111.241.106 homework.otus" | sudo tee -a /etc/hosts
+echo "10.107.253.244 homework.otus" | sudo tee -a /etc/hosts
 
 # cat /etc/hosts
 
 # Запускаем сетевые настройки и деплой
-
-kubectl apply -f pvc.yaml
-
+# сеть
 kubectl apply -f service.yaml
 kubectl apply -f gatewayclass.yaml
 kubectl apply -f gateway.yaml
 kubectl apply -f httproute.yaml
-
+# диск
+kubectl apply -f pvc.yaml
+# настройки
 kubectl apply -f cm.yaml
 kubectl apply -f config.yaml
+# проект
 kubectl apply -f deployment.yaml 
-
 
 # Проверяем доступ к страницам
 curl http://homework.otus/index.html
 curl http://homework.otus/homepage
 
-curl /conf/file
+curl http://homework.otus/conf/file
+cat /homework/conf/file
+
+# удаление
+kubectl delete -f deployment.yaml 
+kubectl delete -f config.yaml
+kubectl delete -f cm.yaml
+kubectl delete -f pvc.yaml
+kubectl delete -f httproute.yaml
+kubectl delete -f gateway.yaml
+kubectl delete -f gatewayclass.yaml
+kubectl delete -f service.yaml

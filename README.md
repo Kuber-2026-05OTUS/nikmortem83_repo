@@ -40,11 +40,11 @@ minikube tunnel
 # выполнять запрос
 
 # на хостовой  машине
-echo "10.107.253.244 homework.otus" | sudo tee -a /etc/hosts
+echo "10.98.61.47 homework.otus" | sudo tee -a /etc/hosts
 
 # на виртуалке миникуба
 minikube ssh
-echo "10.107.253.244 homework.otus" | sudo tee -a /etc/hosts
+echo "10.98.61.47 homework.otus" | sudo tee -a /etc/hosts
 
 # cat /etc/hosts
 

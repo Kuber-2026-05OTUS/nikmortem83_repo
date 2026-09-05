@@ -55,6 +55,7 @@ kubectl apply -f gatewayclass.yaml
 kubectl apply -f gateway.yaml
 kubectl apply -f httproute.yaml
 # диск
+kubectl apply -f storageclass.yaml
 kubectl apply -f pvc.yaml
 # настройки
 kubectl apply -f cm.yaml
@@ -74,6 +75,7 @@ kubectl delete -f deployment.yaml
 kubectl delete -f config.yaml
 kubectl delete -f cm.yaml
 kubectl delete -f pvc.yaml
+kubectl delete -f storageclass.yaml
 kubectl delete -f httproute.yaml
 kubectl delete -f gateway.yaml
 kubectl delete -f gatewayclass.yaml

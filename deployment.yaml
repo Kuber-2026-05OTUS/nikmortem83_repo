@@ -28,7 +28,7 @@ spec:
       initContainers:
         - name: init-container
           image: busybox
-          command: ['sh', '-c', 'mkdir -p /init && echo "<html><body><h1>Homework Assignment #4 - Morozov N.N.</h1><p>This file was created by init container busybox</p></body></html>" > /init/index.html && mkdir /conf']
+          command: ['sh', '-c', 'mkdir -p /init && echo "<html><body><h1>Homework Assignment #5 - Morozov N.N.</h1><p>This file was created by init container busybox</p></body></html>" > /init/index.html && mkdir /conf']
           volumeMounts:
             - name: homework-volume
               mountPath: /init

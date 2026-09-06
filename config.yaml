@@ -6,11 +6,15 @@ metadata:
 data:
   default.conf: |
     server {
-        listen 8000; 
+        listen 8000;
         server_name localhost;
 
         location / {
-            root /homework; 
-            index index.html; 
+            root /homework;
+            index index.html;
+        }
+
+        location /conf/ {
+            alias /homework/conf/;
         }
     }

@@ -16,7 +16,6 @@ spec:
         app: homework-app
     spec:
       volumes:
-        - name: homework-volume
           persistentVolumeClaim:
             claimName: homework-pvc
         - name: nginx-config-volume

@@ -1,0 +1,17 @@
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: homework-monitoring
+rules:
+  # Доступ к /metrics, если он предоставляется API Server'ом
+  - nonResourceURLs: ["/metrics", "/metrics/*"]
+    verbs: ["get"]
+  # Для metrics-server (pod metrics)
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["pods", "nodes"]
+    verbs: ["get", "list"]
+  # Для Prometheus
+  - apiGroups: ["]"]
+    resources: ["pods", "services", "endpoints", "nodes", "persistentvolumes", "persistentvolumeclaims", "replicasets", "deployments"]
+    verbs: ["get", "list"]

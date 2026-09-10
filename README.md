@@ -14,6 +14,9 @@
 
 # kubectl get nodes --show-labels
 
+# добавляем metrics-server
+minikube addons enable metrics-server
+
 # Устанавливаем namespace
 kubectl apply -f namespace.yaml 
 

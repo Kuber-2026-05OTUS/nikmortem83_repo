@@ -16,15 +16,18 @@ spec:
         app: homework-app
     spec:
       volumes:
-        - name: homework-volume
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: homework-pvc
         - name: nginx-config-volume
           configMap:
             name: nginx-config
+        - name: homework-conf-volume
+          configMap:
+            name: homework-config
       initContainers:
         - name: init-container
           image: busybox
-          command: ['sh', '-c', 'mkdir -p /init && echo "<html><body><h1>Homework Assignment #3 - Morozov N.N.</h1><p>This file was created by init container busybox</p></body></html>" > /init/index.html']
+          command: ['sh', '-c', 'mkdir -p /init && echo "<html><body><h1>Homework Assignment #4 - Morozov N.N.</h1><p>This file was created by init container busybox</p></body></html>" > /init/index.html && mkdir /conf']
           volumeMounts:
             - name: homework-volume
               mountPath: /init
@@ -38,6 +41,8 @@ spec:
               mountPath: /homework
             - name: nginx-config-volume
               mountPath: /etc/nginx/conf.d
+            - name: homework-conf-volume
+              mountPath: /homework/conf
           lifecycle:
             preStop:
               exec:

@@ -2,7 +2,31 @@
 # ДЗ "Настройка сервисных аккаунтов и ограничение прав для них"
 # Морозов Н.Н.
 
-# создем ветку kubernetes-networks
+kubernetes-security/
+├── Makefile
+├── deploy.sh
+├── manifests/
+│   ├── namespace.yaml
+│   ├── sa-monitoring.yaml
+│   ├── sa-cd.yaml
+│   ├── role-metrics-reader.yaml
+│   ├── rolebinding-monitoring.yaml
+│   ├── rolebinding-cd-admin.yaml
+│   ├── storageclass.yaml
+│   ├── pvc.yaml
+│   ├── cm.yaml
+│   ├── config.yaml
+│   ├── service.yaml
+│   ├── gatewayclass.yaml
+│   ├── gateway.yaml
+│   ├── httproute.yaml
+│   ├── deployment.yaml
+│   └── traefik-values.yaml
+└── generated/
+    ├── token
+    └── kubeconfig-cd.yaml
+
+# создем ветку kubernetes-security
 # git branch --show-current
 
 # Запускаем minikube, устанавливаем метки на ноды

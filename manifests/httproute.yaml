@@ -11,6 +11,13 @@ spec:
   - "homework.otus"
   rules:
   - matches:
+      - path:
+          type: PathPrefix
+          value: /metrics.html
+    backendRefs:
+      - name: homework-service
+        port: 8000
+  - matches:
     - path:
         type: PathPrefix
         value: /homepage

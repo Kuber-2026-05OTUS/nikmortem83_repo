@@ -10,3 +10,6 @@ additionalArguments:
   - "--entryPoints.websecure.address=:8443"
   - "--global.checkNewVersion=false"
   - "--global.sendAnonymousUsage=false"
+  - "--entryPoints.metrics.address=:9100"
+  - "--metrics.prometheus=true"
+  - "--metrics.prometheus.entryPoint=metrics"

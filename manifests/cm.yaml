@@ -5,5 +5,14 @@ metadata:
   namespace: homework
 data:
   file: |
-    This is the content of /conf/file.
-    You can access it via http://homework.otus/conf/file
+    <html>
+    <head><title>Homework App</title></head>
+    <body>
+      <h1>🎉 Добро пожаловать в homework-app!</h1>
+      <p>Этот контент управляется через ConfigMap.</p>
+      <ul>
+        <li><a href="/index.html">Главная</a></li>
+        <li><a href="/metrics.html">Метрики кластера</a></li>
+      </ul>
+    </body>
+    </html>

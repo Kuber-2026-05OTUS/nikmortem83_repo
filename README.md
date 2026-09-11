@@ -38,6 +38,9 @@ kubernetes-security/
 
 # kubectl get nodes --show-labels
 
+# Запускаем тоннель для вызова сервиса с хостовой машины
+minikube tunnel
+
 # добавляем metrics-server
 minikube addons enable metrics-server
 
@@ -56,8 +59,6 @@ helm install traefik traefik/traefik \
 kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/standard-install.yaml -n homework
 # kubectl get crd | grep gateway
 
-# Запускаем тоннель для вызова сервиса с хостовой машины
-minikube tunnel
 
 # Добавляем имя хоста homework.otus для IP traefik
 # Для того, чтобы обращаться к вашему сервису по хосту

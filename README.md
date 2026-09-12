@@ -68,28 +68,40 @@ kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/downloa
 # выполнять запрос
 
 # на хостовой  машине
-echo "10.98.61.47 homework.otus" | sudo tee -a /etc/hosts
+TRAEFIK_IP=$(kubectl get svc -n homework traefik -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+sudo echo $TRAEFIK_IP homework.otus | sudo tee -a /etc/hosts
 
 # на виртуалке миникуба
-minikube ssh
-echo "10.98.61.47 homework.otus" | sudo tee -a /etc/hosts
+minikube ssh "sudo sh -c 'echo $TRAEFIK_IP homework.otus >> /etc/hosts'"
 
 # cat /etc/hosts
 
 # Запускаем сетевые настройки и деплой
-# сеть
-kubectl apply -f service.yaml
-kubectl apply -f gatewayclass.yaml
-kubectl apply -f gateway.yaml
-kubectl apply -f httproute.yaml
-# диск
-kubectl apply -f storageclass.yaml
-kubectl apply -f pvc.yaml
-# настройки
-kubectl apply -f cm.yaml
-kubectl apply -f config.yaml
-# проект
-kubectl apply -f deployment.yaml 
+kubectl apply -f manifests/sa-monitoring.yaml
+kubectl apply -f manifests/sa-cd.yaml
+kubectl apply -f manifests/role-metrics-reader.yaml
+kubectl apply -f manifests/rolebinding-monitoring.yaml
+kubectl apply -f manifests/rolebinding-cd-admin.yaml
+kubectl apply -f manifests/storageclass.yaml
+kubectl apply -f manifests/pvc.yaml
+kubectl apply -f manifests/cm.yaml
+kubectl apply -f manifests/config.yaml
+kubectl apply -f manifests/service.yaml
+kubectl apply -f manifests/gatewayclass.yaml
+kubectl apply -f manifests/gateway.yaml
+kubectl apply -f manifests/httproute.yaml
+kubectl apply -f manifests/deployment.yaml
+
+# Получаем токен
+kubectl create token cd --namespace homework --duration=24h > generated/token
+
+# Создаём kubeconfig
+KUBECONFIG=generated/kubeconfig-cd.yaml kubectl config set-credentials cd --token=$(cat generated/token)
+KUBECONFIG=generated/kubeconfig-cd.yaml kubectl config set-cluster kubernetes \
+  --server=$(kubectl config view --raw -o jsonpath='{.clusters[0].cluster.server}') \
+  --insecure-skip-tls-verify=true
+KUBECONFIG=generated/kubeconfig-cd.yaml kubectl config set-context homework-cd --cluster=kubernetes --namespace=homework --user=cd
+KUBECONFIG=generated/kubeconfig-cd.yaml kubectl config use-context homework-cd
 
 # Проверяем доступ к страницам
 curl http://homework.otus/index.html

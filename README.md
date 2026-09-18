@@ -41,7 +41,6 @@ kubernetes-security/
 # Запускаем тоннель для вызова сервиса с хостовой машины
 minikube tunnel
 
-<<<<<<< HEAD
 ### Автоматизация развертывания через Makefile
 make all
 
@@ -50,8 +49,6 @@ chmod +x deploy.sh
 ./deploy.sh
 
 ### Ручное развертывание ###
-=======
->>>>>>> 2094621 (Изменены cm.yaml и traefik-values.yaml)
 # добавляем metrics-server
 minikube addons enable metrics-server
 
@@ -71,14 +68,6 @@ helm install traefik traefik/traefik \
 # kubectl get svc -n homework traefik
 # kubectl exec -n homework deploy/traefik -- netstat -tuln | grep -E ':8000|:8443'
 
-<<<<<<< HEAD
-=======
-# Устанавливаем gateway-api CRD
-kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/standard-install.yaml -n homework
-# kubectl get crd | grep gateway
-
-
->>>>>>> 2094621 (Изменены cm.yaml и traefik-values.yaml)
 # Добавляем имя хоста homework.otus для IP traefik
 # Для того, чтобы обращаться к вашему сервису по хосту
 # homework.otus его будет необходимо добавить в файл

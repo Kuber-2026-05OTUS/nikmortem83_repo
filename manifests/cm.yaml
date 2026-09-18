@@ -5,7 +5,6 @@ metadata:
   namespace: homework
 data:
   file: |
-<<<<<<< HEAD
     <html>
     <head><title>Homework App</title></head>
     <body>
@@ -18,7 +17,3 @@ data:
       </ul>
     </body>
     </html>
-=======
-    This is the content of /conf/file.
-    You can access it via http://homework.otus/conf/file
->>>>>>> 7fa4690 (Создана структура ДЗ-5)

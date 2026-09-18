@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: homework-config
+  namespace: homework
+data:
+  file: |
+    <html>
+    <head><title>Homework App</title></head>
+    <body>
+      <h1>🎉 Добро пожаловать в homework-app!</h1>
+      <p>Этот контент управляется через ConfigMap.</p>
+      <ul>
+        <li><a href="http://homework.otus/index.html">Главная</a></li>
+        <li><a href="http://homework.otus/homepage">Домашняя</a></li>
+        <li><a href="http://homework.otus/metrics.html">Метрики кластера</a></li>
+      </ul>
+    </body>
+    </html>

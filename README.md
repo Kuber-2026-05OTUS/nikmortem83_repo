@@ -2,31 +2,7 @@
 # ДЗ "Шаблонизация манифестов приложения, использование Helm. Установка community Helm charts"
 # Морозов Н.Н.
 
-kubernetes-security/
-├── Makefile
-├── deploy.sh
-├── manifests/
-│   ├── namespace.yaml
-│   ├── sa-monitoring.yaml
-│   ├── sa-cd.yaml
-│   ├── role-metrics-reader.yaml
-│   ├── rolebinding-monitoring.yaml
-│   ├── rolebinding-cd-admin.yaml
-│   ├── storageclass.yaml
-│   ├── pvc.yaml
-│   ├── cm.yaml
-│   ├── config.yaml
-│   ├── service.yaml
-│   ├── gatewayclass.yaml
-│   ├── gateway.yaml
-│   ├── httproute.yaml
-│   ├── deployment.yaml
-│   └── traefik-values.yaml
-└── generated/
-    ├── token
-    └── kubeconfig-cd.yaml
-
-# создем ветку kubernetes-security
+# создем ветку kubernetes-templating
 # git branch --show-current
 
 # Запускаем minikube, устанавливаем метки на ноды
@@ -40,6 +16,148 @@ kubernetes-security/
 
 # Запускаем тоннель для вызова сервиса с хостовой машины
 minikube tunnel
+
+# Создаем чарт homework-app
+helm create homework-app ./homework-app
+
+# Установка CRD Gateway API в папку чарта (удаляем ValidatingAdmissionPolicy и ValidatingAdmissionPolicyBinding)
+mkdir -p homework-app/crds
+curl -L -o homework-app/crds/gateway-api.yaml \
+  https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.0/standard-install.yaml
+
+### Формируем Helm-чарт homework-app в соответствии с заданием № 1
+# Chart.yaml — зависимости: Redis из Bitnami community-чарта (condition: redis.enabled), можно включить/выключить через values
+# values.yaml — ключевые параметры: имена объектов, имена контейнеров, образы (поля repository и tag раздельно), порты, хосты, количество реплик, проб
+# _helpers.tpl — хелперы: homework-app.name, homework-app.fullname, homework-app.labels, homework-app.selectorLabels (стандартные лейблы app.kubernetes.io/*)
+# deployment.yaml — образы через "{{ .Values.images.nginx.repository }}:{{ .Values.images.nginx.tag }}", пробы обёрнуты в {{- if .Values.probes.enabled }} / {{- if and .Values.probes.enabled .Values.probes.liveness.enabled }}
+# NOTES.txt — после установки показывает адреса http://localhost:8000 и все эндпоинты, инструкцию по /etc/hosts, а также адрес Redis-зависимости
+# Добавить репозиторий и подтянуть зависимость Redis
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm dependency build homework-app
+
+helm repo update
+helm dependency update homework-app
+
+# Helm-чарт homework-app - запуск
+helm install homework-app ./homework-app \
+  --namespace homework \
+  --create-namespace \
+  --set global.security.allowInsecureImages=true
+
+# Helm-чарт homework-app - запуск с предварительной установкой CRDs traefik
+kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/standard-install.yaml
+helm install homework-app ./homework-app \
+  --namespace homework \
+  --create-namespace \
+  --set global.security.allowInsecureImages=true \
+  --skip-crds
+
+# на хостовой машине при установке через helm
+TRAEFIK_IP=$(kubectl get svc -n homework homework-app-traefik -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+sudo env TRAEFIK_IP="$TRAEFIK_IP" sh -c 'grep -v homework\.otus /etc/hosts > /tmp/hosts && echo "$TRAEFIK_IP homework.otus" >> /tmp/hosts && cp /tmp/hosts /etc/hosts'
+
+# на виртуалке миникуба
+minikube ssh "sudo sh -c 'grep -v homework\\.otus /etc/hosts > /tmp/hosts && echo $TRAEFIK_IP homework.otus >> /tmp/hosts && sudo cp /tmp/hosts /etc/hosts'"
+
+# Перезапуск deploy
+kubectl rollout restart deploy homework-app -n homework
+deployment.apps/homework-app restarted
+
+# Установка и перезапуск с переопределением параметров
+helm install homework-app helm/homework-app \
+  --set replicas=5 \
+  --set images.nginx.tag=1.25 \
+  --set probes.enabled=false \
+  --set redis.enabled=false
+
+helm upgrade homework-app ./homework-app \
+  --namespace homework \
+  --set global.security.allowInsecureImages=true \
+  --set replicas=5 \
+  --set images.nginx.tag=1.25 \
+  --set probes.enabled=false \
+  --set redis.enabled=false
+
+# Проверяем доступ к страницам
+curl http://homework.otus/index.html
+curl http://homework.otus/homepage
+
+curl http://homework.otus/conf/file
+curl http://homework.otus/metrics.html
+
+# Проверяем Radis
+kubectl exec -it homework-app-redis-master-0 -n homework -- redis-cli ping
+# PONG
+
+kubectl exec -it homework-app-redis-master-0 -n homework -- sh -c "redis-cli set test-key hello-from-k8s && redis-cli get test-key"
+
+# Удаление через Helm (для чарта homework-app и зависимостей)
+helm uninstall homework-app --namespace homework
+
+# CRD и PVC останутся — удаляем вручную при необходимости
+kubectl delete crd gatewayclasses.gateway.networking.k8s.io
+kubectl delete crd gateways.gateway.networking.k8s.io
+kubectl delete crd httproutes.gateway.networking.k8s.io
+kubectl delete pvc homework-pvc -n homework
+
+# Удаляем старую validatingadmissionpolicy, блокирующую политику и её привязку
+kubectl delete validatingadmissionpolicy safe-upgrades.gateway.networking.k8s.io
+kubectl delete validatingadmissionpolicybinding safe-upgrades.gateway.networking.k8s.io
+
+# Если Redis установлен отдельным релизом
+helm uninstall redis --namespace homework
+
+# Проверить статус после удаления
+# helm list -n homework
+# kubectl get all -n homework
+# если в списке нет homework-app/redis — удаление прошло успешно
+
+### Формируем helmfile в соответствии с заданием № 2
+# Установка kafka prod
+helm install kafka-prod oci://registry-1.docker.io/bitnamicharts/kafka \
+  --namespace prod \
+  --create-namespace \
+  -f kafka/kafka-prod-values.yaml
+
+# Установка kafka dev
+helm install kafka-dev oci://registry-1.docker.io/bitnamicharts/kafka \
+  --namespace dev \
+  --create-namespace \
+  -f kafka/kafka-dev-values.yaml
+
+# Helmfile для Kafka (задание со *)
+# helmfile.yaml описывает два релиза:
+Параметр	            PROD	                          DEV
+Namespace	            prod	                          dev
+Брокеров	            5	                              1
+Версия Kafka	        3.5.2 (tag: 3.5.2-debian-12-r0)	latest (по умолчанию)
+Протокол client	      SASL_PLAINTEXT	                PLAINTEXT
+Протокол interbroker	SASL_PLAINTEXT	                PLAINTEXT
+Авторизация	          включена	                      отключена
+
+# Запуск
+helmfile sync                              # оба релиза
+helmfile sync --selector name=kafka-prod  # только prod
+helmfile sync --selector name=kafka-dev   # только dev
+
+# Удаление через Helmfile (для Kafka в prod/dev)
+helmfile delete
+# или
+helmfile destroy
+
+# Удалить только Kafka в prod
+helmfile delete --selector name=kafka-prod
+
+# helmfile delete --selector name=kafka-dev
+helmfile delete --selector name=kafka-dev
+
+# Проверить статус после удаления
+# helmfile status
+# kubectl get pods -n prod
+# kubectl get pods -n dev
+
+
+
 
 ### Автоматизация развертывания через Makefile
 make all
@@ -75,9 +193,13 @@ helm install traefik traefik/traefik \
 # миникуба, в зависимости откуда вы будете пытаться
 # выполнять запрос
 
-# на хостовой  машине
+# на хостовой машине
 TRAEFIK_IP=$(kubectl get svc -n homework traefik -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 sudo env TRAEFIK_IP="$TRAEFIK_IP" sh -c 'grep -v homework\.otus /etc/hosts > /tmp/hosts && echo "$TRAEFIK_IP homework.otus" >> /tmp/hosts && cp /tmp/hosts /etc/hosts'
+
+# на хостовой машине при установке через helm
+TRAEFIK_IP=$(kubectl get svc -n homework homework-app-traefik -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+echo "$TRAEFIK_IP  homework.otus" | sudo tee -a /etc/hosts
 
 # на виртуалке миникуба
 minikube ssh "sudo sh -c 'grep -v homework\\.otus /etc/hosts > /tmp/hosts && echo $TRAEFIK_IP homework.otus >> /tmp/hosts && sudo cp /tmp/hosts /etc/hosts'"
@@ -119,6 +241,12 @@ curl http://homework.otus/homepage
 curl http://homework.otus/conf/file
 curl http://homework.otus/metrics.html
 
+# Проверяем Radis
+kubectl exec -it homework-app-redis-master-0 -n homework -- redis-cli ping
+# PONG
+
+kubectl exec -it homework-app-redis-master-0 -n homework -- sh -c "redis-cli set test-key hello-from-k8s && redis-cli get test-key"
+
 ### Удаление
 kubectl delete -f manifests/deployment.yaml
 kubectl delete -f manifests/httproute.yaml
@@ -140,3 +268,4 @@ kubectl delete -f manifests/namespace.yaml
 minikube addons disable metrics-server
 rm -rf generated/kubeconfig-cd.yaml
 rm -rf generated/token
+

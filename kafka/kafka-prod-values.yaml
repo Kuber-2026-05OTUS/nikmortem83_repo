@@ -1,0 +1,8 @@
+replicaCount: 5
+image:
+  tag: "3.5.2-debian-12-r0"
+listenerSecurityProtocolMap: "CLIENT:SASL_PLAINTEXT,INTERBROKER:SASL_PLAINTEXT,CONTROLLER:SASL_PLAINTEXT"
+sasl:
+  enabledMechanisms: "plain"
+  interBrokerMechanism: "plain"
+  controllerMechanism: "plain"

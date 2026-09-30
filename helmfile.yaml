@@ -1,0 +1,31 @@
+# Helmfile: Kafka prod + dev scenarios
+# Usage:
+#   helmfile sync
+#   helmfile sync --selector name=kafka-prod
+#   helmfile sync --selector name=kafka-dev
+
+repositories:
+  - name: bitnami
+    url: https://charts.bitnami.com/bitnami
+
+releases:
+  # ── Kafka PROD: 5 brokers, v3.5.2, SASL_PLAINTEXT ──
+  - name: kafka-prod
+    namespace: prod
+    labels:
+      name: kafka-prod
+      env: prod
+    chart: bitnami/kafka
+    version: "~26.0.0"
+    values:
+      - helmfile.d/kafka-prod-values.yaml
+
+  # ── Kafka DEV: 1 broker, latest, PLAINTEXT, no auth ──
+  - name: kafka-dev
+    namespace: dev
+    labels:
+      name: kafka-dev
+      env: dev
+    chart: bitnami/kafka
+    values:
+      - helmfile.d/kafka-dev-values.yaml

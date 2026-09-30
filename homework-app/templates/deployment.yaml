@@ -1,45 +1,66 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: homework-app
-  namespace: homework
+  name: {{ .Values.app.name }}
+  namespace: {{ .Values.namespace }}
   labels:
-    app: homework-app
+    {{- include "homework-app.labels" . | nindent 4 }}
 spec:
-  replicas: 3
+  replicas: {{ .Values.replicas }}
   selector:
     matchLabels:
-      app: homework-app
+      app: {{ .Values.app.labels.app }}
+  strategy:
+    type: {{ .Values.strategy.type }}
+    rollingUpdate:
+      maxUnavailable: {{ .Values.strategy.rollingUpdate.maxUnavailable }}
+      maxSurge: {{ .Values.strategy.rollingUpdate.maxSurge }}
   template:
     metadata:
       labels:
-        app: homework-app
+        app: {{ .Values.app.labels.app }}
+        {{- include "homework-app.selectorLabels" . | nindent 8 }}
     spec:
-      serviceAccountName: monitoring
+      serviceAccountName: {{ .Values.serviceAccounts.monitoring.name }}
       volumes:
         - name: homework-volume
           persistentVolumeClaim:
-            claimName: homework-pvc
+            claimName: {{ .Values.storage.pvc.name }}
         - name: nginx-config-volume
           configMap:
-            name: nginx-config
+            name: {{ .Values.configMaps.nginx.name }}
         - name: homework-conf-volume
           configMap:
-            name: homework-config
+            name: {{ .Values.configMaps.app.name }}
       initContainers:
-        - name: init-container
-          image: busybox
-          command: ['sh', '-c', 'mkdir -p /init && echo "<html><body><h1>Homework Assignment #5 - Morozov N.N.</h1><p>This file was created by init container busybox</p></body></html>" > /init/index.html && mkdir /conf']
+        - name: {{ .Values.containers.initContainer.name }}
+          image: "{{ .Values.images.initContainer.repository }}:{{ .Values.images.initContainer.tag }}"
+          imagePullPolicy: {{ .Values.images.initContainer.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /init && echo "<html><body><h1>Homework Assignment #6 - Morozov N.N.</h1><p>This file was created by init container</p></body></html>" > /init/index.html && mkdir -p /conf
           volumeMounts:
             - name: homework-volume
               mountPath: /init
-        - name: metrics-fetcher
-          image: alpine:latest
+        - name: {{ .Values.containers.metricsFetcher.name }}
+          image: "{{ .Values.images.metricsFetcher.repository }}:{{ .Values.images.metricsFetcher.tag }}"
+          imagePullPolicy: {{ .Values.images.metricsFetcher.pullPolicy }}
           command:
             - sh
             - -c
             - |
               apk add --no-cache curl ca-certificates >/dev/null 2>&1
+
+              echo "Waiting for metrics-server..."
+              until curl -sf -k \
+                -H "Authorization: Bearer $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" \
+                https://kubernetes.default.svc/apis/metrics.k8s.io/v1beta1/nodes; do
+                echo "metrics-server not ready, retrying..."
+                sleep 3
+              done
+              echo "metrics-server is ready!"
 
               TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
               CA_CERT=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
@@ -113,10 +134,11 @@ spec:
             - name: homework-volume
               mountPath: /init
       containers:
-        - name: homework-nginx
-          image: nginx:latest
+        - name: {{ .Values.containers.nginx.name }}
+          image: "{{ .Values.images.nginx.repository }}:{{ .Values.images.nginx.tag }}"
+          imagePullPolicy: {{ .Values.images.nginx.pullPolicy }}
           ports:
-            - containerPort: 8000
+            - containerPort: {{ .Values.containers.nginx.port }}
           volumeMounts:
             - name: homework-volume
               mountPath: /homework
@@ -127,24 +149,27 @@ spec:
           lifecycle:
             preStop:
               exec:
-                command: ["sh", "-c", "rm -f /homework/index.html"]
+                command:
+                  - sh
+                  - -c
+                  - rm -f /homework/index.html
           resources:
-            requests:
-              memory: "64Mi"
-              cpu: "50m"
-            limits:
-              memory: "128Mi"
-              cpu: "100m"
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.probes.enabled }}
           readinessProbe:
             httpGet:
-              path: /index.html
-              port: 8000
-            initialDelaySeconds: 5
-            periodSeconds: 5
+              path: {{ .Values.probes.readiness.httpGet.path }}
+              port: {{ .Values.containers.nginx.port }}
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+          {{- end }}
+          {{- if and .Values.probes.enabled .Values.probes.liveness.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.liveness.httpGet.path }}
+              port: {{ .Values.containers.nginx.port }}
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+          {{- end }}
       nodeSelector:
-        homework: "true"
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 1
-      maxSurge: 1
+        {{- toYaml .Values.nodeSelector | nindent 8 }}

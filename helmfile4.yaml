@@ -1,5 +1,5 @@
 releases:
-  # ─── PROD: 5 брокеров (controller+broker), Kafka 3.5.2, SASL_PLAINTEXT ───
+  # ─── PROD: 5 узлов (controller+broker), Kafka 3.5.2, SASL_PLAINTEXT ───
   - name: kafka-prod
     namespace: prod
     chart: oci://registry-1.docker.io/bitnamicharts/kafka
@@ -49,7 +49,6 @@ releases:
             registry: docker.io
             repository: bitnamilegacy/os-shell
             tag: "12-debian-12-r51"
-        clusterId: "MkU3OEVBNTcwNTJENDM2Qk"
         kraft:
           enabled: true
           clusterId: "MkU3OEVBNTcwNTJENDM2Qk"
@@ -71,15 +70,13 @@ releases:
               - admin
             clientPasswords:
               - adminpassword
-        auth:
-          enabled: true
         resources:
           requests:
             cpu: 200m
             memory: 512Mi
           limits:
             cpu: 1
-            memory: 2Gi
+            memory: 1Gi
 
   # ─── DEV: 1 брокер, Kafka 4.0.0, PLAINTEXT, без авторизации ───
   - name: kafka-dev
@@ -130,12 +127,10 @@ releases:
             protocol: PLAINTEXT
           controller:
             protocol: PLAINTEXT
-        auth:
-          enabled: false
         resources:
           requests:
-            cpu: 200m
-            memory: 512Mi
+            cpu: 500m
+            memory: 1Gi
           limits:
             cpu: 1
             memory: 2Gi

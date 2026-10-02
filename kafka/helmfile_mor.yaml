@@ -1,0 +1,27 @@
+releases:
+  # ── Kafka PROD: 5 brokers, v3.5.2, SASL_PLAINTEXT ──
+  - name: kafka-prod
+    namespace: prod
+    chart: oci://registry-1.docker.io/bitnamicharts/kafka
+    version: "25.3.5"
+    createNamespace: true
+    labels:
+      name: kafka-prod
+      env: prod
+    # chart: bitnami/kafka
+    # version: "~26.0.0"
+    values:
+      - kafka-prod-values.yaml
+
+  # ── Kafka DEV: 1 broker, latest, PLAINTEXT, no auth ──
+  - name: kafka-dev
+    namespace: dev
+    chart: oci://registry-1.docker.io/bitnamicharts/kafka
+    version: "32.4.3"
+    createNamespace: true
+    labels:
+      name: kafka-dev
+      env: dev
+    # chart: bitnami/kafka
+    values:
+      - kafka-dev-values.yaml

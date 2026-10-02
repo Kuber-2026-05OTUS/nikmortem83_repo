@@ -1,5 +1,5 @@
 releases:
-  # ─── PROD: 5 брокеров (controller+broker), Kafka 3.5.2, SASL_PLAINTEXT ───
+    # ─── PROD: 3 controller + 5 broker, Kafka 3.5.2, SASL_PLAINTEXT ───
   - name: kafka-prod
     namespace: prod
     chart: oci://registry-1.docker.io/bitnamicharts/kafka
@@ -10,29 +10,13 @@ releases:
           security:
             allowInsecureImages: true
         controller:
-          replicaCount: 5
-          controllerOnly: false
+          replicaCount: 1
           automountServiceAccountToken: true
+        broker:
+          replicaCount: 5
           persistence:
-            enabled: true
-            size: 8Gi
-          livenessProbe:
-            enabled: true
-            initialDelaySeconds: 180
-            periodSeconds: 20
-            timeoutSeconds: 10
-            failureThreshold: 12
-          readinessProbe:
-            enabled: true
-            initialDelaySeconds: 90
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 12
-          startupProbe:
-            enabled: true
-            initialDelaySeconds: 30
-            periodSeconds: 30
-            failureThreshold: 24
+            size: 1Gi
+          automountServiceAccountToken: true
         image:
           registry: docker.io
           repository: bitnamilegacy/kafka
@@ -49,7 +33,6 @@ releases:
             registry: docker.io
             repository: bitnamilegacy/os-shell
             tag: "12-debian-12-r51"
-        clusterId: "MkU3OEVBNTcwNTJENDM2Qk"
         kraft:
           enabled: true
           clusterId: "MkU3OEVBNTcwNTJENDM2Qk"
@@ -71,12 +54,13 @@ releases:
               - admin
             clientPasswords:
               - adminpassword
-        auth:
+        persistence:
           enabled: true
+          size: 8Gi
         resources:
           requests:
-            cpu: 200m
-            memory: 512Mi
+            cpu: 500m
+            memory: 1Gi
           limits:
             cpu: 1
             memory: 2Gi
@@ -117,7 +101,6 @@ releases:
               registry: docker.io
               repository: bitnamilegacy/os-shell
               tag: "12-debian-12-r51"
-        clusterId: "MkU3OEVBNTcwNTJENDM2Qk"
         kraft:
           enabled: true
           clusterId: "MkU3OEVBNTcwNTJENDM2Qk"
@@ -130,12 +113,10 @@ releases:
             protocol: PLAINTEXT
           controller:
             protocol: PLAINTEXT
-        auth:
-          enabled: false
         resources:
           requests:
-            cpu: 200m
-            memory: 512Mi
+            cpu: 500m
+            memory: 1Gi
           limits:
             cpu: 1
             memory: 2Gi

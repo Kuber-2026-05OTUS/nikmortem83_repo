@@ -1,2 +1,6 @@
-replicaCount: 1
+controller:
+  replicaCount: 1
+global:
+  security:
+    allowInsecureImages: true
 listenerSecurityProtocolMap: "CLIENT:PLAINTEXT,INTERBROKER:PLAINTEXT,CONTROLLER:PLAINTEXT"

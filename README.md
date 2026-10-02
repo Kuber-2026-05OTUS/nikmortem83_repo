@@ -32,8 +32,6 @@ curl -L -o homework-app/crds/gateway-api.yaml \
 # deployment.yaml — образы через "{{ .Values.images.nginx.repository }}:{{ .Values.images.nginx.tag }}", пробы обёрнуты в {{- if .Values.probes.enabled }} / {{- if and .Values.probes.enabled .Values.probes.liveness.enabled }}
 # NOTES.txt — после установки показывает адреса http://localhost:8000 и все эндпоинты, инструкцию по /etc/hosts, а также адрес Redis-зависимости
 # Добавить репозиторий и подтянуть зависимость Redis
-helm repo add bitnami https://charts.bitnami.com/bitnami
-helm dependency build homework-app
 
 helm repo update
 helm dependency update homework-app
@@ -104,15 +102,25 @@ kubectl delete pvc homework-pvc -n homework
 kubectl delete validatingadmissionpolicy safe-upgrades.gateway.networking.k8s.io
 kubectl delete validatingadmissionpolicybinding safe-upgrades.gateway.networking.k8s.io
 
-# Если Redis установлен отдельным релизом
-helm uninstall redis --namespace homework
-
 # Проверить статус после удаления
 # helm list -n homework
 # kubectl get all -n homework
 # если в списке нет homework-app/redis — удаление прошло успешно
 
 ### Формируем helmfile в соответствии с заданием № 2
+# Установка helmfile
+helmfile_version=1.5.5
+linux_arch=amd64
+
+cd /tmp && wget https://github.com/helmfile/helmfile/releases/download/v${helmfile_version}/helmfile_${helmfile_version}_linux_${linux_arch}.tar.gz
+tar xzvf helmfile_${helmfile_version}_linux_${linux_arch}.tar.gz
+sudo install -m 755 helmfile /usr/local/bin
+
+# Проверка
+helmfile --version
+# Инициализация — установит плагин helm-diff (обязательный)
+helmfile init
+
 # Установка kafka prod
 helm install kafka-prod oci://registry-1.docker.io/bitnamicharts/kafka \
   --namespace prod \
@@ -125,7 +133,7 @@ helm install kafka-dev oci://registry-1.docker.io/bitnamicharts/kafka \
   --create-namespace \
   -f kafka/kafka-dev-values.yaml
 
-# Helmfile для Kafka (задание со *)
+# Helmfile для Kafka
 # helmfile.yaml описывает два релиза:
 Параметр	            PROD	                          DEV
 Namespace	            prod	                          dev
@@ -135,29 +143,68 @@ Namespace	            prod	                          dev
 Протокол interbroker	SASL_PLAINTEXT	                PLAINTEXT
 Авторизация	          включена	                      отключена
 
+# С 28 августа 2025 года Bitnami удалила все теги из публичного репозитория docker.io/bitnami/kafka и перенесла их в docker.io/bitnamilegacy/kafka
+
+# Скачивание образов
+docker pull bitnamilegacy/kafka:3.5.2-debian-11-r10
+docker pull bitnamilegacy/kafka:4.0.0-debian-12-r10
+docker pull bitnamilegacy/os-shell:12-debian-12-r51
+docker pull bitnamilegacy/kubectl:1.33.4
+
+# Установка образов в minikube
+docker save bitnamilegacy/kafka:3.5.2-debian-11-r10 | minikube image load -
+docker save bitnamilegacy/kafka:4.0.0-debian-12-r10 | minikube image load -
+docker save bitnamilegacy/os-shell:12-debian-12-r51 | minikube image load -
+docker save bitnamilegacy/kubectl:1.33.4 | minikube image load -
+minikube image load bitnamilegacy/kafka:3.5.2-debian-11-r10 nodes=all
+minikube image load bitnamilegacy/kafka:4.0.0-debian-12-r10 nodes=all
+minikube image load bitnamilegacy/os-shell:12-debian-12-r51 nodes=all
+minikube image load bitnamilegacy/kubectl:1.33.4 nodes=all
+
 # Запуск
-helmfile sync                              # оба релиза
-helmfile sync --selector name=kafka-prod  # только prod
-helmfile sync --selector name=kafka-dev   # только dev
+helmfile apply
+helmfile apply --selector name=kafka-prod
+helmfile apply --selector name=kafka-dev
+# или
+helmfile sync
+helmfile sync --selector name=kafka-prod
+helmfile sync --selector name=kafka-dev
+
+# Проверка
+kubectl exec -n prod kafka-prod-controller-0 -- env | grep -iE "sasl|jaas|user|pass|kafka"
+kubectl exec -n dev kafka-dev-controller-0 -- env | grep -iE "sasl|jaas|user|pass|kafka"
+kubectl exec -n dev kafka-dev-broker- -- env | grep -iE "sasl|jaas|user|pass|kafka"
 
 # Удаление через Helmfile (для Kafka в prod/dev)
-helmfile delete
-# или
 helmfile destroy
+helmfile destroy --selector name=kafka-prod
+helmfile destroy --selector name=kafka-dev
 
-# Удалить только Kafka в prod
-helmfile delete --selector name=kafka-prod
+# Удаление всех ресурсов
+kubectl delete pvc -n prod --all
+kubectl delete pvc -n dev --all
+kubectl delete pv $(kubectl get pv | grep kafka | awk '{print $1}')
+kubectl delete pv $(kubectl get pv -o custom-columns=NAME:.metadata.name,CLAIM:.spec.claimRef.name --no-headers | grep kafka | awk '{print $1}') 2>/dev/null
+kubectl delete all -n prod --all
+kubectl delete all -n dev --all
+kubectl delete configmap -n prod --all
+kubectl delete secret -n prod --all
 
-# helmfile delete --selector name=kafka-dev
-helmfile delete --selector name=kafka-dev
+# Очистка hostpath-provisioner на каждой ноде Minikube
+for node in $(kubectl get nodes -o jsonpath='{.items[*].metadata.name}'); do
+  echo "Cleaning $node..."
+  minikube ssh --node "$node" "sudo rm -rf /tmp/hostpath-provisioner && sudo mkdir -p /tmp/hostpath-provisioner"
+done
+
+# очистка cache
+helmfile cache cleanup
+# или
+rm -rf ~/.cache/helmfile
 
 # Проверить статус после удаления
 # helmfile status
 # kubectl get pods -n prod
 # kubectl get pods -n dev
-
-
-
 
 ### Автоматизация развертывания через Makefile
 make all

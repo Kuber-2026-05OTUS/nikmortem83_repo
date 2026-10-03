@@ -118,20 +118,8 @@ sudo install -m 755 helmfile /usr/local/bin
 
 # Проверка
 helmfile --version
-# Инициализация — установит плагин helm-diff (обязательный)
+# Инициализация — установит плагин helm-diff
 helmfile init
-
-# Установка kafka prod
-helm install kafka-prod oci://registry-1.docker.io/bitnamicharts/kafka \
-  --namespace prod \
-  --create-namespace \
-  -f kafka/kafka-prod-values.yaml
-
-# Установка kafka dev
-helm install kafka-dev oci://registry-1.docker.io/bitnamicharts/kafka \
-  --namespace dev \
-  --create-namespace \
-  -f kafka/kafka-dev-values.yaml
 
 # Helmfile для Kafka
 # helmfile.yaml описывает два релиза:
@@ -149,19 +137,13 @@ Namespace	            prod	                          dev
 docker pull bitnamilegacy/kafka:3.5.2-debian-11-r10
 docker pull bitnamilegacy/kafka:4.0.0-debian-12-r10
 docker pull bitnamilegacy/os-shell:12-debian-12-r51
-docker pull bitnamilegacy/kubectl:1.33.4
 
 # Установка образов в minikube
 docker save bitnamilegacy/kafka:3.5.2-debian-11-r10 | minikube image load -
 docker save bitnamilegacy/kafka:4.0.0-debian-12-r10 | minikube image load -
 docker save bitnamilegacy/os-shell:12-debian-12-r51 | minikube image load -
-docker save bitnamilegacy/kubectl:1.33.4 | minikube image load -
-minikube image load bitnamilegacy/kafka:3.5.2-debian-11-r10 nodes=all
-minikube image load bitnamilegacy/kafka:4.0.0-debian-12-r10 nodes=all
-minikube image load bitnamilegacy/os-shell:12-debian-12-r51 nodes=all
-minikube image load bitnamilegacy/kubectl:1.33.4 nodes=all
 
-# Запуск
+# Запуск kafka через Helmfile
 helmfile apply
 helmfile apply --selector name=kafka-prod
 helmfile apply --selector name=kafka-dev
@@ -175,7 +157,7 @@ kubectl exec -n prod kafka-prod-controller-0 -- env | grep -iE "sasl|jaas|user|p
 kubectl exec -n dev kafka-dev-controller-0 -- env | grep -iE "sasl|jaas|user|pass|kafka"
 kubectl exec -n dev kafka-dev-broker- -- env | grep -iE "sasl|jaas|user|pass|kafka"
 
-# Удаление через Helmfile (для Kafka в prod/dev)
+# Удаление через Helmfile
 helmfile destroy
 helmfile destroy --selector name=kafka-prod
 helmfile destroy --selector name=kafka-dev
@@ -183,8 +165,7 @@ helmfile destroy --selector name=kafka-dev
 # Удаление всех ресурсов
 kubectl delete pvc -n prod --all
 kubectl delete pvc -n dev --all
-kubectl delete pv $(kubectl get pv | grep kafka | awk '{print $1}')
-kubectl delete pv $(kubectl get pv -o custom-columns=NAME:.metadata.name,CLAIM:.spec.claimRef.name --no-headers | grep kafka | awk '{print $1}') 2>/dev/null
+kubectl delete pv $(kubectl get pv | grep kafka)
 kubectl delete all -n prod --all
 kubectl delete all -n dev --all
 kubectl delete configmap -n prod --all
@@ -205,114 +186,3 @@ rm -rf ~/.cache/helmfile
 # helmfile status
 # kubectl get pods -n prod
 # kubectl get pods -n dev
-
-### Автоматизация развертывания через Makefile
-make all
-
-### Автоматизация развертывания через deploy.sh
-chmod +x deploy.sh
-./deploy.sh
-
-### Ручное развертывание ###
-# добавляем metrics-server
-minikube addons enable metrics-server
-
-# Устанавливаем namespace
-kubectl apply -f namespace.yaml 
-
-# Устанавливаем gateway-api CRD
-kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/standard-install.yaml
-# kubectl get crd | grep gateway
-
-# Устанавливаем traefik
-helm install traefik traefik/traefik \
-  --namespace homework \
-  --create-namespace \
-  --values manifests/traefik-values.yaml
-  
-# kubectl get svc -n homework traefik
-# kubectl exec -n homework deploy/traefik -- netstat -tuln | grep -E ':8000|:8443'
-
-# Добавляем имя хоста homework.otus для IP traefik
-# Для того, чтобы обращаться к вашему сервису по хосту
-# homework.otus его будет необходимо добавить в файл
-# hosts либо на вашей хостовой машине, либо на виртуалке
-# миникуба, в зависимости откуда вы будете пытаться
-# выполнять запрос
-
-# на хостовой машине
-TRAEFIK_IP=$(kubectl get svc -n homework traefik -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-sudo env TRAEFIK_IP="$TRAEFIK_IP" sh -c 'grep -v homework\.otus /etc/hosts > /tmp/hosts && echo "$TRAEFIK_IP homework.otus" >> /tmp/hosts && cp /tmp/hosts /etc/hosts'
-
-# на хостовой машине при установке через helm
-TRAEFIK_IP=$(kubectl get svc -n homework homework-app-traefik -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-echo "$TRAEFIK_IP  homework.otus" | sudo tee -a /etc/hosts
-
-# на виртуалке миникуба
-minikube ssh "sudo sh -c 'grep -v homework\\.otus /etc/hosts > /tmp/hosts && echo $TRAEFIK_IP homework.otus >> /tmp/hosts && sudo cp /tmp/hosts /etc/hosts'"
-
-# cat /etc/hosts
-
-# Запускаем ресурсы и деплой
-kubectl apply -f manifests/sa-monitoring.yaml
-kubectl apply -f manifests/sa-cd.yaml
-kubectl apply -f manifests/secret-cd-token.yaml
-kubectl apply -f manifests/role-metrics-reader.yaml
-kubectl apply -f manifests/rolebinding-monitoring.yaml
-kubectl apply -f manifests/rolebinding-cd-admin.yaml
-kubectl apply -f manifests/storageclass.yaml
-kubectl apply -f manifests/pvc.yaml
-kubectl apply -f manifests/cm.yaml
-kubectl apply -f manifests/config.yaml
-kubectl apply -f manifests/service.yaml
-kubectl apply -f manifests/gatewayclass.yaml
-kubectl apply -f manifests/gateway.yaml
-kubectl apply -f manifests/httproute.yaml
-kubectl apply -f manifests/deployment.yaml
-
-# Получаем токен
-kubectl create token cd --namespace homework --duration=24h > generated/token
-
-# Создаём kubeconfig
-KUBECONFIG=generated/kubeconfig-cd.yaml kubectl config set-credentials cd --token=$(cat generated/token)
-KUBECONFIG=generated/kubeconfig-cd.yaml kubectl config set-cluster kubernetes \
-  --server=$(kubectl config view --raw -o jsonpath='{.clusters[0].cluster.server}') \
-  --insecure-skip-tls-verify=true
-KUBECONFIG=generated/kubeconfig-cd.yaml kubectl config set-context homework-cd --cluster=kubernetes --namespace=homework --user=cd
-KUBECONFIG=generated/kubeconfig-cd.yaml kubectl config use-context homework-cd
-
-### Проверяем доступ к страницам
-curl http://homework.otus/index.html
-curl http://homework.otus/homepage
-
-curl http://homework.otus/conf/file
-curl http://homework.otus/metrics.html
-
-# Проверяем Radis
-kubectl exec -it homework-app-redis-master-0 -n homework -- redis-cli ping
-# PONG
-
-kubectl exec -it homework-app-redis-master-0 -n homework -- sh -c "redis-cli set test-key hello-from-k8s && redis-cli get test-key"
-
-### Удаление
-kubectl delete -f manifests/deployment.yaml
-kubectl delete -f manifests/httproute.yaml
-kubectl delete -f manifests/gateway.yaml
-kubectl delete -f manifests/gatewayclass.yaml
-kubectl delete -f manifests/service.yaml
-kubectl delete -f manifests/config.yaml
-kubectl delete -f manifests/cm.yaml
-kubectl delete -f manifests/pvc.yaml
-kubectl delete -f manifests/storageclass.yaml
-kubectl delete -f manifests/rolebinding-cd-admin.yaml
-kubectl delete -f manifests/rolebinding-monitoring.yaml
-kubectl delete -f manifests/role-metrics-reader.yaml
-kubectl delete -f manifests/secret-cd-token.yaml
-kubectl delete -f manifests/sa-cd.yaml
-kubectl delete -f manifests/sa-monitoring.yaml
-
-kubectl delete -f manifests/namespace.yaml 
-minikube addons disable metrics-server
-rm -rf generated/kubeconfig-cd.yaml
-rm -rf generated/token
-

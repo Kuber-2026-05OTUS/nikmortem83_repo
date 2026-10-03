@@ -1,0 +1,141 @@
+releases:
+  # ─── PROD: 5 брокеров (controller+broker), Kafka 3.5.2, SASL_PLAINTEXT ───
+  - name: kafka-prod
+    namespace: prod
+    chart: oci://registry-1.docker.io/bitnamicharts/kafka
+    version: "25.3.5"
+    createNamespace: true
+    values:
+      - global:
+          security:
+            allowInsecureImages: true
+        controller:
+          replicaCount: 5
+          controllerOnly: false
+          automountServiceAccountToken: true
+          persistence:
+            enabled: true
+            size: 8Gi
+          livenessProbe:
+            enabled: true
+            initialDelaySeconds: 180
+            periodSeconds: 20
+            timeoutSeconds: 10
+            failureThreshold: 12
+          readinessProbe:
+            enabled: true
+            initialDelaySeconds: 90
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+          startupProbe:
+            enabled: true
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 24
+        image:
+          registry: docker.io
+          repository: bitnamilegacy/kafka
+          tag: "3.5.2-debian-11-r10"
+        defaultInitContainers:
+          prepareConfig:
+            image:
+              registry: docker.io
+              repository: bitnamilegacy/kafka
+              tag: "3.5.2-debian-11-r10"
+        volumePermissions:
+          enabled: true
+          image:
+            registry: docker.io
+            repository: bitnamilegacy/os-shell
+            tag: "12-debian-12-r51"
+        clusterId: "MkU3OEVBNTcwNTJENDM2Qk"
+        kraft:
+          enabled: true
+          clusterId: "MkU3OEVBNTcwNTJENDM2Qk"
+        zookeeper:
+          enabled: false
+        listeners:
+          client:
+            protocol: SASL_PLAINTEXT
+          interbroker:
+            protocol: SASL_PLAINTEXT
+          controller:
+            protocol: SASL_PLAINTEXT
+        sasl:
+          enabledMechanisms: plain
+          interBrokerMechanism: plain
+          controllerMechanism: plain
+          jaas:
+            clientUsers:
+              - admin
+            clientPasswords:
+              - adminpassword
+        auth:
+          enabled: true
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: 1
+            memory: 2Gi
+
+  # ─── DEV: 1 брокер, Kafka 4.0.0, PLAINTEXT, без авторизации ───
+  - name: kafka-dev
+    namespace: dev
+    chart: oci://registry-1.docker.io/bitnamicharts/kafka
+    version: "32.4.3"
+    createNamespace: true
+    values:
+      - global:
+          security:
+            allowInsecureImages: true
+        controller:
+          replicaCount: 1
+          automountServiceAccountToken: true
+          persistence:
+            enabled: false
+        broker:
+          replicaCount: 1
+          persistence:
+            enabled: false
+          automountServiceAccountToken: true
+        image:
+          registry: docker.io
+          repository: bitnamilegacy/kafka
+          tag: "4.0.0-debian-12-r10"
+        defaultInitContainers:
+          prepareConfig:
+            image:
+              registry: docker.io
+              repository: bitnamilegacy/kafka
+              tag: "4.0.0-debian-12-r10"
+          volumePermissions:
+            enabled: true
+            image:
+              registry: docker.io
+              repository: bitnamilegacy/os-shell
+              tag: "12-debian-12-r51"
+        clusterId: "MkU3OEVBNTcwNTJENDM2Qk"
+        kraft:
+          enabled: true
+          clusterId: "MkU3OEVBNTcwNTJENDM2Qk"
+        zookeeper:
+          enabled: false
+        listeners:
+          client:
+            protocol: PLAINTEXT
+          interbroker:
+            protocol: PLAINTEXT
+          controller:
+            protocol: PLAINTEXT
+        auth:
+          enabled: false
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: 1
+            memory: 2Gi

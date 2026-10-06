@@ -1,0 +1,22 @@
+apiVersion: v2
+name: homework-app
+description: Helm chart для приложения из ДЗ 1-5
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+
+dependencies:
+  - name: redis
+    version: "~20"
+    repository: "oci://registry-1.docker.io/bitnamicharts"
+    condition: redis.enabled
+
+  - name: traefik
+    version: "~39"
+    repository: "https://traefik.github.io/charts"
+    condition: traefik.enabled
+    
+  - name: metrics-server
+    version: "~3"
+    repository: "https://kubernetes-sigs.github.io/metrics-server/"
+    condition: metrics-server.enabled

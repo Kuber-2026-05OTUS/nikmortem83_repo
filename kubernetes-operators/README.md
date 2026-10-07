@@ -48,6 +48,11 @@ kubectl get mysqls.otus.homework
 kubectl get deployment,svc,pvc -l app=mysql-mysql-instance
 kubectl get pv pv-mysql-instance
 
+## 📌 Задание со * — минимальный ClusterRole 
+kubectl delete clusterrole mysql-operator-role
+kubectl apply -f rbac/cluster-role-minimal.yaml
+kubectl rollout restart deployment mysql-operator -n homework 
+
 ## Собираем образ внутри кластера
 eval $(minikube docker-env)
 

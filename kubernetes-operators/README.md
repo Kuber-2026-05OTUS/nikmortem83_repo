@@ -42,20 +42,55 @@ kubectl apply -f cr/mysql-cr.yaml
 ### CRD создан
 kubectl get crd mysqls.otus.homework
 ### оператор работает
-kubectl get pods -l app=mysql-operator
+kubectl get pods -l app=mysql-operator -n homework
 ### CR создан
-kubectl get mysqls.otus.homework
-kubectl get deployment,svc,pvc -l app=mysql-mysql-instance
-kubectl get pv pv-mysql-instance
+kubectl get mysqls.otus.homework -n homework
 
 ## 📌 Задание со * — минимальный ClusterRole 
 kubectl delete clusterrole mysql-operator-role
 kubectl apply -f rbac/cluster-role-minimal.yaml
 kubectl rollout restart deployment mysql-operator -n homework 
 
+## 📌 Задание с ** — свой оператор на Python + фреймворк Kopf 
+### 💡 Создание CR (@kopf.on.create):
+### PersistentVolume — hostPath, размер из spec.storage_size
+### PersistentVolumeClaim — привязан к PV
+### Deployment — образ из spec.image, переменные MYSQL_ROOT_PASSWORD и MYSQL_DATABASE, том из PVC
+### vService — ClusterIP, порт 3306
+
+### 💡 Удаление CR (@kopf.on.delete):
+### Service → 2. Deployment → 3. PVC → 4. PV (в обратном порядке)
+### Каждый ресурс помечается labels: {app: mysql-<name>} — оператор находит свои ресурсы по имени, а не по лейблам, что надёжнее при удалении.
+
+## Сборка собственного оператора
+cd operator/
+docker build -t mysql-operator:1.0.0 .
+### docker images | grep mysql-operator
+
+### добавляем образ в minikube
+minikube image load mysql-operator:1.0.0
+
+## Сборка собственного оператора в registry
+minikube addons enable registry
+
+### добавляем IP minikube в insecure-registries
+MINIKUBE_IP=$(minikube ip)
+echo "{\"insecure-registries\": [\"$MINIKUBE_IP:5000\"]}" | sudo tee /etc/docker/daemon.json
+sudo systemctl restart docker
+
+### сборка и добавление в registry
+docker tag mysql-operator:1.0.0 $MINIKUBE_IP:5000/mysql-operator:1.0.0
+docker push $MINIKUBE_IP:5000/mysql-operator:1.0.0
+
+## Запуск собственного оператора
+kubectl apply -f deployment/operator-deployment-custom.yaml
+
+
+
 ## Собираем образ внутри кластера
 eval $(minikube docker-env)
-
+# Собираем образ
+docker build -t mysql-operator:1.0.0 .
 
 ## Остановка
 kubectl delete -f crd/crd-mysql.yaml

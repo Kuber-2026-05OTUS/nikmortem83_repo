@@ -1,0 +1,31 @@
+{{ .Values.app.name }} has been deployed!
+
+namespace: {{ .Values.namespace }}
+replicas: {{ .Values.replicas }}
+
+────────────────────────────────────
+Access the service at:
+
+  http://localhost:{{ .Values.gateway.port }}/
+
+Available endpoints:
+  - http://{{ .Values.httproute.hostname }}/index.html
+  - http://{{ .Values.httproute.hostname }}/homepage
+  - http://{{ .Values.httproute.hostname }}/conf/file
+  - http://{{ .Values.httproute.hostname }}/metrics.html
+
+NOTE: Make sure "{{ .Values.httproute.hostname }}" resolves to the
+      Traefik LoadBalancer IP in your /etc/hosts.
+
+      TRAEFIK_IP=$(kubectl get svc -n {{ .Values.namespace }} homework-app-traefik -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+      echo "$TRAEFIK_IP  {{ .Values.httproute.hostname }}" | sudo tee -a /etc/hosts
+
+────────────────────────────────────
+{{- if .Values.redis.enabled }}
+Redis dependency has been enabled.
+
+  redis: {{ include "homework-app.fullname" . }}-redis.{{ .Values.namespace }}.svc:6379
+{{- end }}
+
+To verify pods:
+  kubectl get pods -n {{ .Values.namespace }} -l app={{ .Values.app.labels.app }}

@@ -1,0 +1,47 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.rbac.clusterRole.name }}
+  labels:
+    {{- include "homework-app.labels" . | nindent 4 }}
+rules:
+  - nonResourceURLs: ["/metrics"]
+    verbs: ["get"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["pods", "nodes"]
+    verbs: ["get", "list"]
+  - apiGroups: ["metrics.k8s.io/v1beta1"]
+    resources: ["pods", "nodes"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.rbac.roleBindings.monitoring.name }}
+  labels:
+    {{- include "homework-app.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.serviceAccounts.monitoring.name }}
+    namespace: {{ .Values.namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ .Values.rbac.clusterRole.name }}
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Values.rbac.roleBindings.cdAdmin.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "homework-app.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.serviceAccounts.cd.name }}
+    namespace: {{ .Values.namespace }}
+roleRef:
+  kind: ClusterRole
+  name: admin
+  apiGroup: rbac.authorization.k8s.io

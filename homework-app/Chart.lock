@@ -1,0 +1,12 @@
+dependencies:
+- name: redis
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 20.13.4
+- name: traefik
+  repository: https://traefik.github.io/charts
+  version: 39.0.9
+- name: metrics-server
+  repository: https://kubernetes-sigs.github.io/metrics-server/
+  version: 3.14.0
+digest: sha256:935ce3f0f756bf9eb0f66a34b5c7fd46feecfbad9fd4cdcac9b7b6361ddd758a
+generated: "2026-09-30T11:32:30.139604521+03:00"

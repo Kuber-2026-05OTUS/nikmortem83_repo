@@ -25,7 +25,7 @@ minikube start --driver=docker
 ### ClusterRole с полными правами (apiGroups: ["*"], resources: ["*"], verbs: ["*"]) 
 ### ClusterRoleBinding связывает SA и ClusterRole 
 ## 3. Deployment оператора использует образ roflmaoinmysoul/mysql-operator:1.0.0, привязан к созданному ServiceAccount.
-## 4. Custom Resource MySQL валидный экземпляр CR: образ mysql:8.0, база otusdb, пароль SuperSecret123, хранилище 5Gi.
+## 4. Custom Resource MySQL валидный экземпляр CR: образ mysql:8.0, база otusdb, пароль otusdb, хранилище 5Gi.
 
 ## Устанавливаем namespace
 kubectl apply -f namespace.yaml 
@@ -60,7 +60,6 @@ kubectl rollout restart deployment mysql-operator -n homework
 
 ### 💡 Удаление CR (@kopf.on.delete):
 ### Service → 2. Deployment → 3. PVC → 4. PV (в обратном порядке)
-### Каждый ресурс помечается labels: {app: mysql-<name>} — оператор находит свои ресурсы по имени, а не по лейблам, что надёжнее при удалении.
 
 ## Сборка собственного оператора
 cd operator/

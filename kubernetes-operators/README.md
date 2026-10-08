@@ -12,7 +12,7 @@
 ### git branch --show-current
 
 ## Запускаем minikube
-minikube start --driver=docker --nodes 2
+minikube start --driver=docker
 
 ## 📌 1. CRD — crd-mysql.yaml 
 ### CRD уровня namespace, группа otus.homework, kind MySQL, plural mysqls, версия v1. Четыре обязательных строковых поля с валидацией:
@@ -70,35 +70,31 @@ docker build -t mysql-operator:1.0.0 .
 ### добавляем образ в minikube
 minikube image load mysql-operator:1.0.0
 
-## Сборка собственного оператора в registry
-minikube addons enable registry
-
-### добавляем IP minikube в insecure-registries
-MINIKUBE_IP=$(minikube ip)
-echo "{\"insecure-registries\": [\"$MINIKUBE_IP:5000\"]}" | sudo tee /etc/docker/daemon.json
-sudo systemctl restart docker
-
-### сборка и добавление в registry
-docker tag mysql-operator:1.0.0 $MINIKUBE_IP:5000/mysql-operator:1.0.0
-docker push $MINIKUBE_IP:5000/mysql-operator:1.0.0
+## Добавляем права ClusterRole для собственного оператора
+kubectl apply -f rbac/operator-clusterrole.yaml
+kubectl apply -f rbac/operator-clusterrolebinding.yaml
 
 ## Запуск собственного оператора
-kubectl apply -f deployment/operator-deployment-custom.yaml
+kubectl apply -f operator/operator-deployment-custom.yaml
 
+## Создаем кастомный ресурс MySQL:
+kubectl apply -f cr/mysql-cr.yaml
 
+## Проверка
+kubectl get pods -n homework -l app=mysql-operator
+kubectl logs -f deployment/mysql-operator -n homework
+kubectl get pods,deployments,svc,pvc,pv -n homework
+kubectl get mysqls.otus.homework -n homework
 
-## Собираем образ внутри кластера
-eval $(minikube docker-env)
-# Собираем образ
-docker build -t mysql-operator:1.0.0 .
-
-## Остановка
+## Остановка и очистка
 kubectl delete -f crd/crd-mysql.yaml
 kubectl delete -f rbac/service-account.yaml
 kubectl delete -f rbac/cluster-role-full.yaml
 kubectl delete -f rbac/cluster-role-binding.yaml
 kubectl delete -f deployment/operator-deployment.yaml
+kubectl delete -f rbac/operator-clusterrole.yaml
+kubectl delete -f rbac/operator-clusterrolebinding.yaml
+kubectl delete -f operator/operator-deployment-custom.yaml
 kubectl delete -f cr/mysql-cr.yaml
 
-## При kubectl delete -f cr/mysql-cr.yaml все созданные ресурсы (Deployment, Service, PV, PVC) удаляются.
  

@@ -95,6 +95,4 @@ kubectl delete -f deployment/operator-deployment.yaml
 kubectl delete -f rbac/operator-clusterrole.yaml
 kubectl delete -f rbac/operator-clusterrolebinding.yaml
 kubectl delete -f operator/operator-deployment-custom.yaml
-kubectl delete -f cr/mysql-cr.yaml
-
- 
+kubectl delete -f cr/mysql-cr.yaml 

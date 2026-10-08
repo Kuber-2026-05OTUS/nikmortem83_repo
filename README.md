@@ -1,6 +1,7 @@
 # Репозиторий для выполнения домашних заданий курса "Инфраструктурная платформа на основе Kubernetes-2026-05" 
 # Морозов Н.Н.
 
+# ✨ Kubernetes-2026-05
 ## ├── kubernetes-controllers
 ### │   ├── config.yaml
 ### │   ├── deployment.yaml
@@ -25,7 +26,7 @@
 ### │   ├── README.md
 ### │   ├── service.yaml
 ### │   └── traefik-values.yaml
-## ├── kubernetes-operators
+## ├── kubernetes-operators 📌
 ### │   ├── cr
 ### │   │   └── mysql-cr.yaml
 ### │   ├── crd
@@ -33,9 +34,17 @@
 ### │   ├── deployment
 ### │   │   └── operator-deployment.yaml
 ### │   ├── namespace.yaml
+### │   ├── operator
+### │   │   ├── app
+### │   │   ├── Dockerfile
+### │   │   ├── main.py
+### │   │   └── operator-deployment-custom.yaml
 ### │   ├── rbac
 ### │   │   ├── cluster-role-binding.yaml
 ### │   │   ├── cluster-role-full.yaml
+### │   │   ├── cluster-role-minimal.yaml
+### │   │   ├── operator-clusterrolebinding.yaml
+### │   │   ├── operator-clusterrole.yaml
 ### │   │   └── service-account.yaml
 ### │   └── README.md
 ## ├── kubernetes-security

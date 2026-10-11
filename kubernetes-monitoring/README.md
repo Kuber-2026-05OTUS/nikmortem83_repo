@@ -32,12 +32,48 @@ minikube start --driver=docker
 ## Устанавливаем namespace
 kubectl apply -f namespace.yaml 
 
-## Запуск:
+## Установка Prometheus
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
 
+helm install prometheus prometheus-community/kube-prometheus-stack --namespace homework
+
+helm install prometheus \
+  prometheus-community/kube-prometheus-stack \
+  --namespace homework \
+  --create-namespace
+
+## Access Grafana local instance:
+  export POD_NAME=$(kubectl --namespace homework get pod -l "app.kubernetes.io/name=grafana,app.kubernetes.io/instance=prometheus" -oname)
+  kubectl --namespace homework port-forward $POD_NAME 3000
+
+## Get your grafana admin user password by running:
+  kubectl get secret --namespace homework -l app.kubernetes.io/component=admin-secret -o jsonpath="{.items[0].data.admin-password}" | base64 --decode ; echo
+### http://localhost:3000  Login=admin  Password=TCqsRbJiySBd3zPL7a9hdcaKH8IG6tJZlfxak0N9
+
+## Сборка и загрузка образа в minikube
+cd nginx-image
+docker build -t nginx-custom:1.0.0 .
+minikube image load nginx-custom:1.0.0
+
+## Запуск:
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+kubectl apply -f service-monitor.yaml
 
 ## Провреки:
+### Проверка stub_status изнутри пода
+POD=$(kubectl get pods -n homework -l app=nginx-with-metrics -o jsonpath="{.items[0].metadata.name}")
+kubectl exec -it $POD -n homework -c nginx -- curl -s http://127.0.0.1/stub_status
 
-
+http://localhost:3000
+http://localhost:9090/targets
+### Запрос метрик в UI Prometheus:
+### •	nginx_up — должен вернуть 1 (экспортер жив).
+### •	nginx_connections_active — активные соединения.
+### •	nginx_http_requests_total — общее число запросов.
 
 ## Остановка и очистка
-
+kubectl delete -f deployment.yaml
+kubectl delete -f service.yaml
+kubectl delete -f service-monitor.yaml

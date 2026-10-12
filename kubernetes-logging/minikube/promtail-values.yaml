@@ -1,0 +1,11 @@
+
+nodeSelector:
+  node-role: infra
+tolerations:
+- key: node-role
+  operator: Equal
+  value: infra
+  effect: NoSchedule
+config:
+  clients:
+    - url: http://loki-gateway.homework.svc.cluster.local/loki/api/v1/push

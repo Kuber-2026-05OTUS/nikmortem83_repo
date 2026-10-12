@@ -1,0 +1,20 @@
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-with-metrics-svc
+  namespace: homework
+  labels:
+    app: nginx-with-metrics
+    monitored: "true"
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+    - name: metrics
+      port: 9113
+      targetPort: metrics
+  selector:
+    app: nginx-with-metrics

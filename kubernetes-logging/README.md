@@ -85,6 +85,55 @@ helm install \
     --namespace homework \
     --values minikube/promtail-values.yaml
 
+## 📌 Yandex Cloud
+
+## 💡 Общая архитектура для Yandex Cloud
+### 2 пула нод в Managed K8s: worker (для приложений) и infra (для Loki, Grafana).
+### Taint на infra‑нодах: node-role=infra:NoSchedule.
+### S3‑хранилище: MinIO в Yandex Cloud (или Yandex Object Storage).
+### Loki: монолитный режим (deploymentMode: Monolithic), хранение в S3, индексы и чанки в S3.
+### Promtail: DaemonSet на всех нодах (включая infra).
+### Grafana: на infra‑нодах, datasource к Loki.
+
+## Создаем бакет S3 (MinIO / Yandex Object Storage)
+yc storage bucket create loki-logs-yc
+
+## Создаем ServiceAccount и ключи доступа
+### Создать SA
+yc iam service-account create --name loki-sa --description "SA for Loki S3 access"
+
+### Привязать роль (для MinIO/YC S3)
+yc resource-manager folder add-access-binding <FOLDER_ID> \
+  --role storage.admin \
+  --service-account-id <SA_ID>
+
+### Создать статические ключи
+yc iam key create --service-account-id <SA_ID> --output key.json
+
+## При создании кластера/пулов в Yandex Cloud настраиваем нод‑пулы и taints:
+### Для пула infra:
+### Taint: node-role=infra:NoSchedule
+### Label: node-role=infra
+
+## Установка Loki в Yandex Cloud
+helm repo add grafana-community https://grafana.github.io/helm-charts
+helm install loki grafana-community/loki \
+  --namespace homework \
+  --create-namespace \
+  --values yandex/loki-values.yaml
+
+## Установка Promtail в Yandex Cloud
+helm repo add grafana-legacy https://grafana.github.io/loki-charts
+helm install promtail grafana-legacy/promtail \
+  --namespace homework \
+  --values yandex/promtail-values.yaml
+
+## Установка Grafana в Yandex Cloud
+helm install \
+    grafana grafana-community/grafana \
+    --namespace homework \
+    --values yandex/grafana-values.yaml
+
 ## Провреки:
 ### проверкаа конфигурации нод
 kubectl get node -o wide --show-labels
@@ -95,11 +144,10 @@ kubectl get nodes -o custom-columns=NAME:.metadata.name,TAINTS:.spec.taints
 ### minikube-m03   [map[effect:NoSchedule key:node-role value:infra]]
 
 ### проверка Loki
-kubectl get pods -w --namespace homework
-
-kubectl port-forward --namespace homework svc/loki-gateway 3100:80 
 #### http://127.0.0.1:3100/loki/api/v1/push
+kubectl port-forward --namespace homework svc/loki-gateway 3100:80 
 curl "http://127.0.0.1:3100/loki/api/v1/query_range" --data-urlencode 'query={job="test"}' | jq .data.result
+
 % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
 100  3764    0  3736  100    28  21642    162 --:--:-- --:--:-- --:--:-- 21883
@@ -125,6 +173,12 @@ export NODE_PORT=$(kubectl get --namespace homework -o jsonpath="{.spec.ports[0]
 export NODE_IP=$(kubectl get nodes --namespace homework -o jsonpath="{.items[0].status.addresses[0].address}")
 echo http://$NODE_IP:$NODE_PORT
 ### переходим на страницу графана http://192.168.49.2:30300
+
+┌───────────┬─────────┬─────────────┬───────────────────────────┐
+│ NAMESPACE │  NAME   │ TARGET PORT │            URL            │
+├───────────┼─────────┼─────────────┼───────────────────────────┤
+│ homework  │ grafana │ service/80  │ http://192.168.49.2:30300 │
+└───────────┴─────────┴─────────────┴───────────────────────────┘
 
 ### проверка Promtail
 kubectl --namespace homework port-forward daemonset/promtail 3101

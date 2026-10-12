@@ -1,11 +1,11 @@
 
-nodeSelector:
-  node-role: infra
+nodeSelector: {}
 tolerations:
-- key: node-role
-  operator: Equal
-  value: infra
-  effect: NoSchedule
+  - key: node-role
+    operator: Equal
+    value: infra
+    effect: NoSchedule
+  - operator: Exists
 config:
   clients:
     - url: http://loki-gateway.homework.svc.cluster.local/loki/api/v1/push

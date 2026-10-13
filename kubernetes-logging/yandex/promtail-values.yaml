@@ -1,0 +1,14 @@
+nodeSelector: {}  # не ограничиваем, чтобы был на всех нодах
+tolerations:
+  - key: node-role
+    operator: Equal
+    value: infra
+    effect: NoSchedule
+  - operator: Exists
+
+config:
+  clients:
+    - url: http://loki.homework.svc.cluster.local/loki/api/v1/push
+
+daemonSet:
+  enabled: true

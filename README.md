@@ -14,7 +14,19 @@
 #### │   ├── pod.yaml
 #### │   ├── README.md
 #### │   └── service.yaml
-### ├── kubernetes-monitoring 📌
+### ├── kubernetes-logging 📌
+#### │   ├── minikube
+#### │   │   ├── grafana-values.yaml
+#### │   │   ├── loki-values.yaml
+#### │   │   └── promtail-values.yaml
+#### │   ├── namespace.yaml
+#### │   ├── PLG.png
+#### │   ├── README.md
+#### │   └── yandex
+#### │       ├── grafana-values.yaml
+#### │       ├── loki-values.yaml
+#### │       └── promtail-values.yaml
+### ├── kubernetes-monitoring
 #### │   ├── deployment.yaml
 #### │   ├── image.png
 #### │   ├── namespace.yaml

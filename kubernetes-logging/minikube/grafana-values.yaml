@@ -1,0 +1,26 @@
+adminUser: admin
+adminPassword: admin
+nodeSelector:
+  node-role: infra
+tolerations:
+- key: node-role
+  operator: Equal
+  value: infra
+  effect: NoSchedule
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Loki
+        uid: loki
+        type: loki
+        access: proxy
+        orgId: 1
+        url: http://loki-gateway.homework.svc.cluster.local
+        isDefault: true
+        editable: true
+service:
+  type: NodePort
+  nodePort: 30300
+persistence:
+  enabled: false

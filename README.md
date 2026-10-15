@@ -1,4 +1,4 @@
-# Репозиторий для выполнения домашних заданий курса "Инфраструктурная платформа на основе Kubernetes" 
+# Репозиторий для выполнения домашних заданий и проектных работ курса "Инфраструктурная платформа на основе Kubernetes" 
 # Морозов Н.Н.
 
 ## ✨ Kubernetes-2026-05
@@ -14,7 +14,7 @@
 #### │   ├── pod.yaml
 #### │   ├── README.md
 #### │   └── service.yaml
-### ├── kubernetes-logging 📌
+### ├── kubernetes-logging
 #### │   ├── minikube
 #### │   │   ├── grafana-values.yaml
 #### │   │   ├── loki-values.yaml
@@ -68,6 +68,8 @@
 #### │   │   ├── operator-clusterrolebinding.yaml
 #### │   │   ├── operator-clusterrole.yaml
 #### │   │   └── service-account.yaml
+#### │   └── README.md
+### ├── kubernetes-project 📌
 #### │   └── README.md
 ### ├── kubernetes-security
 #### │   ├── deploy.sh
